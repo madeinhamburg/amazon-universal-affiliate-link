@@ -1,4 +1,5 @@
 <?php
+
 function getIp() {
 	if (!empty($_SERVER["HTTP_CLIENT_IP"]) and filter_var($_SERVER["HTTP_CLIENT_IP"], FILTER_VALIDATE_IP)) {
 		return $_SERVER["HTTP_CLIENT_IP"];
@@ -33,16 +34,30 @@ function getCountryCode() {
 }
 
 
-function getProductId() {
-	$url = substr(parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH), 1);
+function getProductId($countryCode) {
+	$url = trim(substr(parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH), 1));
+
 	if (!empty($url)) {
-		return $url;
+		$prod = $url;
 	}
 	if (!empty($_GET["id"])) {
-		return $_GET["id"];
+		$prod = $_GET["id"];
 	}
 
-	return null;
+	if (strpos($prod, ",") === false) {
+		return empty($prod) ? null : $prod;
+	}
+
+	$prods    = explode(",", $prod);
+	$fallback = $prods[0];
+
+	foreach ($prods as $p) {
+		if (substr(strtoupper($p), 0, 3) == strtoupper($countryCode).":") {
+			return substr($p, 3);
+		}
+	}
+
+	return $fallback;
 }
 
 
@@ -66,7 +81,7 @@ function generateLink($countryCode) {
 		$trackingId = getTrackingId("US");
 	}
 
-	return sprintf("https://www.amazon.%s/gp/product/%s?tag=%s", $tld, getProductId(), $trackingId);
+	return sprintf("https://www.amazon.%s/gp/product/%s?tag=%s", $tld, getProductId($countryCode), $trackingId);
 }
 
 
